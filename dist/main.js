@@ -54,13 +54,13 @@ const audioBtnIcon = document.getElementById('audio-btn-icon');
 videoBtn.addEventListener('click', () => {
   toggleStream('video');
   videoBtn.classList.toggle('feature-active');
-  videoBtnIcon.innerText = videoBtnIcon.innerText == '' ? '' : '';
+  videoBtnIcon.innerText = videoBtnIcon.innerText == '' ? '' : '';
 });
 
 audioBtn.addEventListener('click', () => {
   toggleStream('audio');
   audioBtn.classList.toggle('feature-active');
-  audioBtnIcon.innerText = audioBtnIcon.innerText == '' ? '' : '';
+  audioBtnIcon.innerText = audioBtnIcon.innerText == '' ? '' : '';
 });
 
 pc.addEventListener('track', (ev) => {
