@@ -9,7 +9,7 @@ const servers = {
 
 const pc = new RTCPeerConnection(servers);
 
-const ws = new WebSocket('ws://localhost:3000');
+const ws = new WebSocket('wss://wecall-v1.herokuapp.com');
 
 let localStream = new MediaStream();
 let remoteStream = new MediaStream();
