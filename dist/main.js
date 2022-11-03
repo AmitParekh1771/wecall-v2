@@ -112,12 +112,15 @@ ws.addEventListener('open', (ev) => {
   console.log(ev);
 });
 
+const joiningCode = document.getElementById('joining-code');
+
 ws.addEventListener('message', (ev) => {
   const data = JSON.parse(ev.data);
 
   if (data.type == 'new_room') {
     uuid = data.uuid;
     console.log('room created', data);
+    joiningCode.innerText = data.uuid;
     setOffer();
   }
 
