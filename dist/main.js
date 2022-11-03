@@ -11,6 +11,12 @@ const pc = new RTCPeerConnection(servers);
 
 const ws = new WebSocket('wss://wecall-v1.herokuapp.com');
 
+ws.addEventListener('open', (ev) => console.log("Socket connection open", ev));
+
+ws.addEventListener('close', (ev) => console.log("Socket connection close", ev));
+
+ws.addEventListener('error', (ev) => console.log("Socket connection error", ev));
+
 let localStream = new MediaStream();
 let remoteStream = new MediaStream();
 let uuid = '00000000-0000-0000-0000-000000000000';
