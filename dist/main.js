@@ -9,7 +9,10 @@ const servers = {
 
 const pc = new RTCPeerConnection(servers);
 
-const ws = new WebSocket('wss://wecall-v1.herokuapp.com');
+const localSocket = 'ws://localhost:3000';
+const herokuSocket = 'wss://wecall-v1.herokuapp.com';
+
+const ws = new WebSocket(localSocket);
 
 ws.addEventListener('open', (ev) => console.log("Socket connection open", ev));
 
@@ -20,20 +23,19 @@ ws.addEventListener('error', (ev) => console.log("Socket connection error", ev))
 let localStream = new MediaStream();
 let remoteStream = new MediaStream();
 let uuid = '00000000-0000-0000-0000-000000000000';
+let isHost = false;
 
-/**
- * function to start video stream
- *
- * @param {HTMLVideoElement} el
- */
-async function startStream(el) {
+const localVideo = document.getElementById('localVideo');
+const remoteVideo = document.getElementById('remoteVideo');
+
+async function startStream() {
   if (navigator.mediaDevices.getUserMedia) {
     localStream = await navigator.mediaDevices.getUserMedia({
       video: true,
       audio: true,
     });
 
-    el.srcObject = localStream;
+    localVideo.srcObject = localStream;
 
     localStream.getTracks().forEach((track) => {
       pc.addTrack(track);
@@ -42,9 +44,11 @@ async function startStream(el) {
   }
 }
 
-const localVideo = document.getElementById('localVideo');
-const remoteVideo = document.getElementById('remoteVideo');
-startStream(localVideo);
+function stopStream() {
+  localStream.getTracks().forEach(track => track.stop());
+  changeRoute('meet-join');
+}
+
 
 function toggleStream(type) {
   localStream.getTracks().forEach((track) => {
@@ -56,6 +60,24 @@ const videoBtn = document.getElementById('video-btn');
 const videoBtnIcon = document.getElementById('video-btn-icon');
 const audioBtn = document.getElementById('audio-btn');
 const audioBtnIcon = document.getElementById('audio-btn-icon');
+const meetJoinSection = document.getElementById('meet-join-section');
+const roomSection = document.getElementById('room-section');
+
+roomSection.style.display = 'none';
+
+function changeRoute(route) {
+  meetJoinSection.style.display = 'none';
+  roomSection.style.display = 'none';
+
+  switch(route) {
+    case 'meet-join': 
+      meetJoinSection.style.display = 'flex';
+      break;
+    case 'room':
+      roomSection.style.display = 'flex';
+      break;  
+  }
+}
 
 videoBtn.addEventListener('click', () => {
   toggleStream('video');
@@ -75,11 +97,21 @@ pc.addEventListener('track', (ev) => {
   console.log(ev);
 });
 
+pc.addEventListener('signalingstatechange', (ev) => {
+  pc.signalingState == 'closed' ? stopStream(): null;
+});
+
 function sendData(data) {
   ws.send(JSON.stringify(data));
 }
 
-function createMeet() {
+async function createMeet() {
+  pc.signalingState = 'stable';
+
+  await startStream();
+
+  isHost = true;
+
   sendData({
     type: 'create_room',
     roomId: uuid,
@@ -114,19 +146,17 @@ async function setOffer() {
   console.log('After creating offer', pc);
 }
 
-ws.addEventListener('open', (ev) => {
-  console.log(ev);
-});
-
 const joiningCode = document.getElementById('joining-code');
 
 ws.addEventListener('message', (ev) => {
   const data = JSON.parse(ev.data);
 
-  if (data.type == 'new_room') {
-    uuid = data.uuid;
+  if (data.type == 'new_room_created') {
+    joiningCode.innerText = uuid = data.uuid;
+
+    changeRoute('room');
+
     console.log('room created', data);
-    joiningCode.innerText = data.uuid;
     setOffer();
   }
 
@@ -138,6 +168,8 @@ ws.addEventListener('message', (ev) => {
   if (!pc.currentRemoteDescription && data.type == 'answer') {
     const answerDescription = new RTCSessionDescription(data.answer);
     pc.setRemoteDescription(answerDescription);
+
+    console.log('After getting answer description', answerDescription);
   }
 
   if (!pc.currentRemoteDescription && data.type == 'offer') {
@@ -147,13 +179,19 @@ ws.addEventListener('message', (ev) => {
     const candidate = new RTCIceCandidate(data.offerCandidate);
     pc.addIceCandidate(candidate);
 
+    changeRoute('room');
+
     setAnswer();
   }
 });
 
 const meetCode = document.getElementById('meet-code');
 
-function joinMeet() {
+async function joinMeet() {
+  await startStream();
+  
+  isHost = false;
+
   sendData({
     type: 'get_offer',
     roomId: meetCode.value || uuid,
@@ -186,4 +224,11 @@ async function setAnswer() {
   });
 
   console.log('After sending answer', pc);
+}
+
+
+function hangUpCall() {
+  if(isHost) pc.close();
+  stopStream();
+  isHost = false;
 }
