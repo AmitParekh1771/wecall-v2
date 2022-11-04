@@ -17,7 +17,6 @@ mongoose
   })
   .catch((reson) => {
     console.log(reson);
-    throw new Error('Database connection error');
   });
 
 const Room = mongoose.model('Room', new mongoose.Schema({
