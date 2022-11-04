@@ -148,7 +148,7 @@ async function setOffer() {
 
 const joiningCode = document.getElementById('joining-code');
 
-ws.addEventListener('message', (ev) => {
+ws.addEventListener('message', async (ev) => {
   const data = JSON.parse(ev.data);
 
   if (data.type == 'new_room_created') {
@@ -162,22 +162,22 @@ ws.addEventListener('message', (ev) => {
 
   if (data.type == 'answer_candidate') {
     const candidate = new RTCIceCandidate(data.answerCandidate);
-    pc.addIceCandidate(candidate);
+    await pc.addIceCandidate(candidate);
   }
 
   if (!pc.currentRemoteDescription && data.type == 'answer') {
     const answerDescription = new RTCSessionDescription(data.answer);
-    pc.setRemoteDescription(answerDescription);
+    await pc.setRemoteDescription(answerDescription);
 
     console.log('After getting answer description', answerDescription);
   }
 
   if (!pc.currentRemoteDescription && data.type == 'offer') {
     const offerDescription = new RTCSessionDescription(data.offer);
-    pc.setRemoteDescription(offerDescription);
+    await pc.setRemoteDescription(offerDescription);
 
     const candidate = new RTCIceCandidate(data.offerCandidate);
-    pc.addIceCandidate(candidate);
+    await pc.addIceCandidate(candidate);
 
     changeRoute('room');
 
