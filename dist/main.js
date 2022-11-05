@@ -2,18 +2,18 @@ const servers = {
   iceServers: [
     {
       urls: [
-        'stun:stun.l.google.com:19302',
-        'stun:stun1.l.google.com:19302',
-        'stun:stun2.l.google.com:19302',
+        'stun:stun4.l.google.com:19302',
         'stun:stun3.l.google.com:19302',
-        'stun:stun4.l.google.com:19302'
+        'stun:stun2.l.google.com:19302',
+        'stun:stun1.l.google.com:19302',
+        'stun:stun.l.google.com:19302',
       ],
     },
   ],
   iceCandidatePoolSize: 10,
 };
 
-const pc = new RTCPeerConnection(servers);
+let pc = new RTCPeerConnection(servers);
 
 const localSocket = 'ws://localhost:3000';
 const herokuSocket = 'wss://wecall-v1.herokuapp.com';
@@ -29,7 +29,6 @@ ws.addEventListener('error', (ev) => console.log("Socket connection error", ev))
 let localStream = new MediaStream();
 let remoteStream = new MediaStream();
 let uuid = '00000000-0000-0000-0000-000000000000';
-let isHost = false;
 
 const localVideo = document.getElementById('localVideo');
 const remoteVideo = document.getElementById('remoteVideo');
@@ -48,13 +47,6 @@ async function startStream() {
     });
   }
 }
-
-function stopStream() {
-  localStream.getTracks().forEach(track => track.stop());
-  // changeRoute('meet-join');
-  location.reload();
-}
-
 
 function toggleStream(type) {
   localStream.getTracks().forEach((track) => {
@@ -100,26 +92,12 @@ audioBtn.addEventListener('click', () => {
 pc.addEventListener('track', (ev) => {
   remoteStream.addTrack(ev.track);
   remoteVideo.srcObject = remoteStream;
+  console.log('remote track', ev.track);
 });
 
-pc.addEventListener('icegatheringstatechange', (ev) => {
-  console.log('ice gathering state changed', pc.iceGatheringState);
-})
-
 pc.addEventListener('connectionstatechange', (ev) => {
+  if(pc.connectionState == 'disconnected' || pc.connectionState == 'failed' || pc.connectionState == 'closed') hangUpCall();
   console.log('connection state change', pc.connectionState);
-})
-
-pc.addEventListener('signalingstatechange', (ev) => {
-  console.log('signaling state change', pc.signalingState);
-})
-
-pc.addEventListener('iceconnectionstatechange', (ev) => {
-  console.log('ice connection state change', pc.iceConnectionState);
-})
-
-pc.addEventListener('negotiationneeded', (ev) => {
-  console.log('negotiation needed');
 })
 
 function sendData(data) {
@@ -129,8 +107,6 @@ function sendData(data) {
 async function createMeet() {
   await startStream();
 
-  isHost = true;
-
   sendData({
     type: 'create_room',
     roomId: uuid,
@@ -139,7 +115,7 @@ async function createMeet() {
 
 async function setOffer() {
   pc.onicecandidate = (event) => {
-    if (!event.candidate) return;
+    if (!event.candidate || event.candidate.protocol !== 'udp') return;
 
     sendData({
       type: 'set_offer_candidate',
@@ -162,6 +138,7 @@ async function setOffer() {
     offer,
   });
 
+  console.log('After sending offer', pc);
 }
 
 const joiningCode = document.getElementById('joining-code');
@@ -173,6 +150,7 @@ ws.addEventListener('message', async (ev) => {
     joiningCode.innerText = uuid = data.uuid;
 
     console.log('new room created', data);
+
     changeRoute('room');
 
     setOffer();
@@ -181,7 +159,7 @@ ws.addEventListener('message', async (ev) => {
   if (!pc.currentRemoteDescription && data.type == 'answer') {
     const answerDescription = new RTCSessionDescription(data.answer);
     await pc.setRemoteDescription(answerDescription);
-
+    
     const candidate = new RTCIceCandidate(data.answerCandidate);
     await pc.addIceCandidate(candidate);
 
@@ -211,8 +189,6 @@ const meetCode = document.getElementById('meet-code');
 async function joinMeet() {
   await startStream();
   
-  isHost = false;
-
   sendData({
     type: 'get_offer',
     roomId: meetCode.value.trim() || uuid,
@@ -230,7 +206,7 @@ async function setAnswer() {
   };
 
   pc.onicecandidate = (event) => {
-    if (!event.candidate) return;
+    if (!event.candidate || event.candidate.protocol !== 'udp') return;
 
     sendData({
       type: 'set_answer_candidate',
@@ -252,13 +228,15 @@ async function setAnswer() {
     roomId: meetCode.value.trim() || uuid,
     answer,
   });
+
+  console.log('After sending answer', pc);
 }
 
 
 function hangUpCall() {
-  if(isHost) pc.close();
-  stopStream();
-  isHost = false;
+  pc.close();
+  localStream.getTracks().forEach(track => track.stop());
+  location.reload();
 }
 
 setInterval(() => {
