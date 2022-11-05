@@ -101,7 +101,7 @@ async function setAnswerCandidate(roomId, answerCandidate, ws) {
 
   let hostWs;
   wss.clients.forEach(ws => {
-    if(ws.hostedRoomId && ws.hostedRoomId == newDoc._id) hostWs = ws;
+    if(ws.hostedRoomId == newDoc._id.toString()) return hostWs = ws;
   });
 
   if(!hostWs) return;
@@ -125,8 +125,6 @@ function run() {
   app.use(express.json());
 
   wss.on('connection', (ws, req) => {
-    console.log('WSS clients', wss.clients);
-    
     ws.on('message', (message) => {
       const data = JSON.parse(message);
       

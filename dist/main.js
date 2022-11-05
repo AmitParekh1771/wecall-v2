@@ -165,14 +165,14 @@ ws.addEventListener('message', async (ev) => {
     await pc.addIceCandidate(candidate);
   }
 
-  if (!pc.currentRemoteDescription && data.type == 'answer') {
+  if (data.type == 'answer') {
     const answerDescription = new RTCSessionDescription(data.answer);
     await pc.setRemoteDescription(answerDescription);
 
     console.log('After getting answer description', answerDescription);
   }
 
-  if (!pc.currentRemoteDescription && data.type == 'offer') {
+  if (data.type == 'offer') {
     const offerDescription = new RTCSessionDescription(data.offer);
     await pc.setRemoteDescription(offerDescription);
 
