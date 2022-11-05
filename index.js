@@ -125,6 +125,8 @@ function run() {
   app.use(express.json());
 
   wss.on('connection', (ws, req) => {
+    console.log('WSS clients', wss.clients);
+    
     ws.on('message', (message) => {
       const data = JSON.parse(message);
       
