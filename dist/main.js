@@ -18,7 +18,7 @@ const pc = new RTCPeerConnection(servers);
 const localSocket = 'ws://localhost:3000';
 const herokuSocket = 'wss://wecall-v1.herokuapp.com';
 
-const ws = new WebSocket(herokuSocket);
+const ws = new WebSocket(localSocket);
 
 ws.addEventListener('open', (ev) => console.log("Socket connection open", ev));
 
@@ -46,7 +46,6 @@ async function startStream() {
     localStream.getTracks().forEach((track) => {
       pc.addTrack(track);
     });
-    console.log(localStream.getTracks());
   }
 }
 
@@ -101,20 +100,33 @@ audioBtn.addEventListener('click', () => {
 pc.addEventListener('track', (ev) => {
   remoteStream.addTrack(ev.track);
   remoteVideo.srcObject = remoteStream;
-  console.log(ev);
 });
 
+pc.addEventListener('icegatheringstatechange', (ev) => {
+  console.log('ice gathering state changed', pc.iceGatheringState);
+})
+
+pc.addEventListener('connectionstatechange', (ev) => {
+  console.log('connection state change', pc.connectionState);
+})
+
 pc.addEventListener('signalingstatechange', (ev) => {
-  pc.signalingState == 'closed' ? stopStream(): null;
-});
+  console.log('signaling state change', pc.signalingState);
+})
+
+pc.addEventListener('iceconnectionstatechange', (ev) => {
+  console.log('ice connection state change', pc.iceConnectionState);
+})
+
+pc.addEventListener('negotiationneeded', (ev) => {
+  console.log('negotiation needed');
+})
 
 function sendData(data) {
   ws.send(JSON.stringify(data));
 }
 
 async function createMeet() {
-  pc.signalingState = 'stable';
-
   await startStream();
 
   isHost = true;
@@ -150,7 +162,6 @@ async function setOffer() {
     offer,
   });
 
-  console.log('After creating offer', pc);
 }
 
 const joiningCode = document.getElementById('joining-code');
@@ -161,24 +172,20 @@ ws.addEventListener('message', async (ev) => {
   if (data.type == 'new_room_created') {
     joiningCode.innerText = uuid = data.uuid;
 
+    console.log('new room created', data);
     changeRoute('room');
 
-    console.log('room created', data);
     setOffer();
   }
-
-  if (data.type == 'answer_candidate') {
-    const candidate = new RTCIceCandidate(data.answerCandidate);
-    await pc.addIceCandidate(candidate);
-    
-    console.log('After getting answer candidate', pc);
-  }
-
+  
   if (!pc.currentRemoteDescription && data.type == 'answer') {
     const answerDescription = new RTCSessionDescription(data.answer);
     await pc.setRemoteDescription(answerDescription);
 
-    console.log('After getting answer description', pc);
+    const candidate = new RTCIceCandidate(data.answerCandidate);
+    await pc.addIceCandidate(candidate);
+
+    console.log('After getting answer', pc);
   }
 
   if (!pc.currentRemoteDescription && data.type == 'offer') {
@@ -187,8 +194,8 @@ ws.addEventListener('message', async (ev) => {
 
     const candidate = new RTCIceCandidate(data.offerCandidate);
     await pc.addIceCandidate(candidate);
-    
-    console.log('After getting offer description and candidate', pc);
+
+    console.log('After getting offer', pc);
 
     changeRoute('room');
 
@@ -213,6 +220,15 @@ async function joinMeet() {
 }
 
 async function setAnswer() {
+  pc.onicegatheringstatechange = (event) => {
+    if(pc.iceGatheringState != 'complete') return;
+
+    sendData({
+      type: 'get_answer',
+      roomId: meetCode.value.trim() || uuid
+    });
+  };
+
   pc.onicecandidate = (event) => {
     if (!event.candidate) return;
 
@@ -236,8 +252,6 @@ async function setAnswer() {
     roomId: meetCode.value.trim() || uuid,
     answer,
   });
-
-  console.log('After sending answer', pc);
 }
 
 

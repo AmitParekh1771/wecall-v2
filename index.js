@@ -77,18 +77,24 @@ async function setAnswer(roomId, answer, ws) {
   }, { new: true });
 
   if(!newDoc) return sendData({ type: 'room_not_found' }, ws);
+}
+
+async function getAnswer(roomId, ws) {
+  const doc = await Room.findById(roomId);
+  
+  if(!doc) return sendData({ type: 'room_not_found' }, ws);
 
   let hostWs;
   wss.clients.forEach(ws => {
-    if(ws.hostedRoomId && ws.hostedRoomId == newDoc._id.toString()) hostWs = ws;
+    if(ws.hostedRoomId && ws.hostedRoomId == doc._id.toString()) hostWs = ws;
   });
 
   if(!hostWs) return;
 
-
   sendData({
     type: 'answer',
-    answer: newDoc.answer
+    answer: doc.answer,
+    answerCandidate: doc.answerCandidate
   }, hostWs);
 }
 
@@ -98,18 +104,6 @@ async function setAnswerCandidate(roomId, answerCandidate, ws) {
   }, { new: true });
 
   if(!newDoc) return sendData({ type: 'room_not_found' }, ws);
-
-  let hostWs;
-  wss.clients.forEach(ws => {
-    if(ws.hostedRoomId == newDoc._id.toString()) return hostWs = ws;
-  });
-
-  if(!hostWs) return;
-
-  sendData({
-    type: 'answer_candidate',
-    answerCandidate: newDoc.answerCandidate
-  }, hostWs);
 }
 
 async function leaveRoom(ws) {
@@ -147,6 +141,10 @@ function run() {
   
         case 'set_answer':
           setAnswer(data.roomId, data.answer, ws);
+          break;
+  
+        case 'get_answer':
+          getAnswer(data.roomId, ws);
           break;
   
         case 'set_answer_candidate':
