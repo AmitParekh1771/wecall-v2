@@ -232,3 +232,9 @@ function hangUpCall() {
   stopStream();
   isHost = false;
 }
+
+setInterval(() => {
+  sendData({
+    type: 'ping'
+  })
+}, 50000);
