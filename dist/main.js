@@ -1,7 +1,13 @@
 const servers = {
   iceServers: [
     {
-      urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'],
+      urls: [
+        'stun:stun.l.google.com:19302',
+        'stun:stun1.l.google.com:19302',
+        'stun:stun2.l.google.com:19302',
+        'stun:stun3.l.google.com:19302',
+        'stun:stun4.l.google.com:19302'
+      ],
     },
   ],
   iceCandidatePoolSize: 10,
@@ -46,7 +52,8 @@ async function startStream() {
 
 function stopStream() {
   localStream.getTracks().forEach(track => track.stop());
-  changeRoute('meet-join');
+  // changeRoute('meet-join');
+  location.reload();
 }
 
 
@@ -163,21 +170,25 @@ ws.addEventListener('message', async (ev) => {
   if (data.type == 'answer_candidate') {
     const candidate = new RTCIceCandidate(data.answerCandidate);
     await pc.addIceCandidate(candidate);
+    
+    console.log('After getting answer candidate', pc);
   }
 
-  if (data.type == 'answer') {
+  if (!pc.currentRemoteDescription && data.type == 'answer') {
     const answerDescription = new RTCSessionDescription(data.answer);
     await pc.setRemoteDescription(answerDescription);
 
-    console.log('After getting answer description', answerDescription);
+    console.log('After getting answer description', pc);
   }
 
-  if (data.type == 'offer') {
+  if (!pc.currentRemoteDescription && data.type == 'offer') {
     const offerDescription = new RTCSessionDescription(data.offer);
     await pc.setRemoteDescription(offerDescription);
 
     const candidate = new RTCIceCandidate(data.offerCandidate);
     await pc.addIceCandidate(candidate);
+    
+    console.log('After getting offer description and candidate', pc);
 
     changeRoute('room');
 
@@ -185,6 +196,9 @@ ws.addEventListener('message', async (ev) => {
   }
 });
 
+/**
+ * @type {HTMLInputElement}
+ */
 const meetCode = document.getElementById('meet-code');
 
 async function joinMeet() {
@@ -194,7 +208,7 @@ async function joinMeet() {
 
   sendData({
     type: 'get_offer',
-    roomId: meetCode.value || uuid,
+    roomId: meetCode.value.trim() || uuid,
   });
 }
 
@@ -204,7 +218,7 @@ async function setAnswer() {
 
     sendData({
       type: 'set_answer_candidate',
-      roomId: meetCode.value || uuid,
+      roomId: meetCode.value.trim() || uuid,
       answerCandidate: event.candidate.toJSON(),
     });
   };
@@ -219,7 +233,7 @@ async function setAnswer() {
 
   sendData({
     type: 'set_answer',
-    roomId: meetCode.value || uuid,
+    roomId: meetCode.value.trim() || uuid,
     answer,
   });
 
