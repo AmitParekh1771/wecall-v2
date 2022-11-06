@@ -100,6 +100,9 @@
           <div class="feature-btn feature-active" id="audio-btn">
             <div class="fa-solid" id="audio-btn-icon"></div>
           </div>
+          <div class="feature-btn" id="chat-box-btn">
+            <div class="fa-solid" id="chat-btn-icon"></div>
+          </div>
           <div class="end-btn" onclick="hangUpCall()">
             <div class="fa-solid rotate"></div>
           </div>
@@ -107,6 +110,22 @@
       </div>
     </div>
     <!-- room section -->
+
+    <!-- chat container -->
+    <div id="chat-container">
+      <div id="chat-container-bg"></div>
+      <div class="chat-block">
+        <div class="chat-messages" id="chat-messages">
+          <div class="chat-title">Chat Messages</div>
+        </div>
+        <div class="chat-operate">
+          <input type="text" name="chat-input" id="chat-input" class="w-input" placeholder="Send message">
+          <button class="fa-solid w-button" id="chat-input-btn"></button>
+        </div>
+      </div>
+    </div>
+    <!-- chat container -->
+
 
     <script src="main.js"></script>
   </body>

@@ -61,6 +61,14 @@ const audioBtnIcon = document.getElementById('audio-btn-icon');
 const meetJoinSection = document.getElementById('meet-join-section');
 const roomSection = document.getElementById('room-section');
 
+const chatContainer = document.getElementById('chat-container');
+const chatContainerBg = document.getElementById('chat-container-bg');
+const chatInput = document.getElementById('chat-input');
+const chatInputBtn = document.getElementById('chat-input-btn');
+const chatBoxBtn = document.getElementById('chat-box-btn');
+const chatMessages = document.getElementById('chat-messages');
+
+chatContainer.style.display = 'none';
 roomSection.style.display = 'none';
 
 function changeRoute(route) {
@@ -179,6 +187,17 @@ ws.addEventListener('message', async (ev) => {
 
     setAnswer();
   }
+
+  if(data.type == 'chat_message') {
+    const textNode = document.createTextNode(data.message);
+    const div = document.createElement('div');
+    div.appendChild(textNode);
+    data.isSender ? div.classList.add('sender-chat') : div.classList.add('receiver-chat');
+
+    chatMessages.appendChild(div);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
 });
 
 /**
@@ -188,10 +207,12 @@ const meetCode = document.getElementById('meet-code');
 
 async function joinMeet() {
   await startStream();
+
+  uuid = meetCode.value.trim();
   
   sendData({
     type: 'get_offer',
-    roomId: meetCode.value.trim() || uuid,
+    roomId: uuid,
   });
 }
 
@@ -201,7 +222,7 @@ async function setAnswer() {
 
     sendData({
       type: 'add_answer_candidate',
-      roomId: meetCode.value.trim() || uuid,
+      roomId: uuid,
       answerCandidate: event.candidate.toJSON(),
     });
   };
@@ -216,7 +237,7 @@ async function setAnswer() {
 
   sendData({
     type: 'set_answer',
-    roomId: meetCode.value.trim() || uuid,
+    roomId: uuid,
     answer,
   });
 
@@ -235,3 +256,33 @@ setInterval(() => {
     type: 'ping'
   })
 }, 50000);
+
+function sendChatMessage() {
+  sendData({
+    type: 'send_chat_message',
+    roomId: uuid,
+    message: chatInput.value
+  })
+}
+
+chatInputBtn.addEventListener('click', (ev) => {
+  sendChatMessage();
+  chatInput.value = '';
+});
+
+chatInput.addEventListener('keyup', (ev) => {
+  if(ev.key != 'Enter') return; 
+  
+  sendChatMessage();
+  chatInput.value = '';
+});
+
+chatBoxBtn.addEventListener('click', (ev) => {
+  chatContainer.style.display = 'flex';
+  chatBoxBtn.classList.add('feature-active');
+});
+
+chatContainerBg.addEventListener('click', (ev) => {
+  chatContainer.style.display = 'none';
+  chatBoxBtn.classList.remove('feature-active');
+})

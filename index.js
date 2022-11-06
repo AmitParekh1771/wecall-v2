@@ -36,6 +36,7 @@ async function createRoom(ws) {
   await doc.save();
 
   ws.hostedRoomId = doc._id.toString();
+  ws.joinedRoomId = doc._id.toString();
 
   sendData({
     type: 'new_room_created',
@@ -77,6 +78,8 @@ async function setAnswer(roomId, answer, ws) {
   }, { new: true });
 
   if(!newDoc) return sendData({ type: 'room_not_found' }, ws);
+
+  ws.joinedRoomId = newDoc._id.toString();
   
   let hostWs;
   wss.clients.forEach(ws => {
@@ -109,6 +112,12 @@ async function addAnswerCandidate(roomId, answerCandidate, ws) {
     type: 'answer_candidate',
     answerCandidate: answerCandidate
   }, hostWs);
+}
+
+function sendChatMessage(roomId, message, sender) {
+  wss.clients.forEach(ws => {
+    if(ws.joinedRoomId && ws.joinedRoomId == roomId) sendData({ type: 'chat_message', message: message, isSender: ws == sender }, ws);
+  });
 }
 
 async function leaveRoom(ws) {
@@ -150,6 +159,10 @@ function run() {
   
         case 'add_answer_candidate':
           addAnswerCandidate(data.roomId, data.answerCandidate, ws);
+          break;
+
+        case 'send_chat_message':
+          sendChatMessage(data.roomId, data.message, ws);
           break;
       }
     });
