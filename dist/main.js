@@ -18,7 +18,7 @@ let pc = new RTCPeerConnection(servers);
 const localSocket = 'ws://localhost:3000';
 const herokuSocket = 'wss://wecall-v1.herokuapp.com';
 
-const ws = new WebSocket(herokuSocket);
+const ws = new WebSocket(localSocket);
 
 ws.addEventListener('open', (ev) => console.log("Socket connection open", ev));
 
@@ -157,22 +157,20 @@ ws.addEventListener('message', async (ev) => {
   }
   
   if (!pc.currentRemoteDescription && data.type == 'answer') {
-    const answerDescription = new RTCSessionDescription(data.answer);
-    await pc.setRemoteDescription(answerDescription);
+    await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
     
-    data.answerCandidates.forEach(async answerCandidate => {
-      await pc.addIceCandidate(new RTCIceCandidate(answerCandidate));
-    });
-
     console.log('After getting answer', pc);
+  }
+  
+  if(data.type == 'answer_candidate') {
+    pc.addIceCandidate(new RTCIceCandidate(data.answerCandidate));
   }
 
   if (!pc.currentRemoteDescription && data.type == 'offer') {
-    const offerDescription = new RTCSessionDescription(data.offer);
-    await pc.setRemoteDescription(offerDescription);
+    await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
 
-    data.offerCandidates.forEach(async offerCandidate => {
-      await pc.addIceCandidate(new RTCIceCandidate(offerCandidate));
+    data.offerCandidates.forEach(offerCandidate => {
+      pc.addIceCandidate(new RTCIceCandidate(offerCandidate));
     });
 
     console.log('After getting offer', pc);
@@ -198,15 +196,6 @@ async function joinMeet() {
 }
 
 async function setAnswer() {
-  pc.onicegatheringstatechange = (event) => {
-    if(pc.iceGatheringState != 'complete') return;
-
-    sendData({
-      type: 'get_answer',
-      roomId: meetCode.value.trim() || uuid
-    });
-  };
-
   pc.onicecandidate = (event) => {
     if (!event.candidate) return;
 
