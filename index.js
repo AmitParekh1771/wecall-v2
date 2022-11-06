@@ -22,8 +22,8 @@ mongoose
 const Room = mongoose.model('Room', new mongoose.Schema({
   offer: Object,
   answer: Object,
-  offerCandidate: Object,
-  answerCandidate: Object
+  offerCandidates: Array,
+  answerCandidates: Array
 }));
 
 function sendData(data, connection) {
@@ -51,9 +51,9 @@ async function setOffer(roomId, offer, ws) {
   if(!newDoc) return sendData({ type: 'room_not_found' }, ws);
 }
 
-async function setOfferCandidate(roomId, offerCandidate, ws) {
+async function addOfferCandidate(roomId, offerCandidate, ws) {
   const newDoc = await Room.findByIdAndUpdate(roomId, {
-    $set: { offerCandidate }
+    $push: { offerCandidates: offerCandidate }
   }, { new: true });
   
   if(!newDoc) return sendData({ type: 'room_not_found' }, ws);
@@ -67,7 +67,7 @@ async function getOffer(roomId, ws) {
   sendData({
     type: 'offer',
     offer: doc.offer,
-    offerCandidate: doc.offerCandidate
+    offerCandidates: doc.offerCandidates
   }, ws);
 }
 
@@ -94,13 +94,13 @@ async function getAnswer(roomId, ws) {
   sendData({
     type: 'answer',
     answer: doc.answer,
-    answerCandidate: doc.answerCandidate
+    answerCandidates: doc.answerCandidates
   }, hostWs);
 }
 
-async function setAnswerCandidate(roomId, answerCandidate, ws) {
+async function addAnswerCandidate(roomId, answerCandidate, ws) {
   const newDoc = await Room.findByIdAndUpdate(roomId, {
-    $set: { answerCandidate }
+    $push: { answerCandidates: answerCandidate }
   }, { new: true });
 
   if(!newDoc) return sendData({ type: 'room_not_found' }, ws);
@@ -135,8 +135,8 @@ function run() {
           getOffer(data.roomId, ws);
           break;
   
-        case 'set_offer_candidate':
-          setOfferCandidate(data.roomId, data.offerCandidate, ws);
+        case 'add_offer_candidate':
+          addOfferCandidate(data.roomId, data.offerCandidate, ws);
           break;
   
         case 'set_answer':
@@ -147,8 +147,8 @@ function run() {
           getAnswer(data.roomId, ws);
           break;
   
-        case 'set_answer_candidate':
-          setAnswerCandidate(data.roomId, data.answerCandidate, ws);
+        case 'add_answer_candidate':
+          addAnswerCandidate(data.roomId, data.answerCandidate, ws);
           break;
       }
     });

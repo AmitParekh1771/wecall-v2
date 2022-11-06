@@ -115,10 +115,10 @@ async function createMeet() {
 
 async function setOffer() {
   pc.onicecandidate = (event) => {
-    if (!event.candidate || event.candidate.protocol !== 'udp') return;
+    if (!event.candidate) return;
 
     sendData({
-      type: 'set_offer_candidate',
+      type: 'add_offer_candidate',
       roomId: uuid,
       offerCandidate: event.candidate.toJSON(),
     });
@@ -160,8 +160,9 @@ ws.addEventListener('message', async (ev) => {
     const answerDescription = new RTCSessionDescription(data.answer);
     await pc.setRemoteDescription(answerDescription);
     
-    const candidate = new RTCIceCandidate(data.answerCandidate);
-    await pc.addIceCandidate(candidate);
+    data.answerCandidates.forEach(async answerCandidate => {
+      await pc.addIceCandidate(new RTCIceCandidate(answerCandidate));
+    });
 
     console.log('After getting answer', pc);
   }
@@ -170,8 +171,9 @@ ws.addEventListener('message', async (ev) => {
     const offerDescription = new RTCSessionDescription(data.offer);
     await pc.setRemoteDescription(offerDescription);
 
-    const candidate = new RTCIceCandidate(data.offerCandidate);
-    await pc.addIceCandidate(candidate);
+    data.offerCandidates.forEach(async offerCandidate => {
+      await pc.addIceCandidate(new RTCIceCandidate(offerCandidate));
+    });
 
     console.log('After getting offer', pc);
 
@@ -206,10 +208,10 @@ async function setAnswer() {
   };
 
   pc.onicecandidate = (event) => {
-    if (!event.candidate || event.candidate.protocol !== 'udp') return;
+    if (!event.candidate) return;
 
     sendData({
-      type: 'set_answer_candidate',
+      type: 'add_answer_candidate',
       roomId: meetCode.value.trim() || uuid,
       answerCandidate: event.candidate.toJSON(),
     });
