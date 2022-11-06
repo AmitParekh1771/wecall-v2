@@ -18,7 +18,7 @@ let pc = new RTCPeerConnection(servers);
 const localSocket = 'ws://localhost:3000';
 const herokuSocket = 'wss://wecall-v1.herokuapp.com';
 
-const ws = new WebSocket(localSocket);
+const ws = new WebSocket(herokuSocket);
 
 ws.addEventListener('open', (ev) => console.log("Socket connection open", ev));
 
