@@ -15,8 +15,8 @@ const servers = {
 
 let pc = new RTCPeerConnection(servers);
 
-const url = new URL(window.location.href);
-const socketURL = `wss://${url}`;
+const url = new URL(window.location);
+const socketURL = `wss://${url.hostname}`;
 
 const ws = new WebSocket(socketURL);
 
